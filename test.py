@@ -18,20 +18,28 @@ def get_video_details(video_ID):
 	return response
 
 
-video_URL = 'https://www.youtube.com/watch?v=L8HxKTty1WU'
+video_URL = input("Enter your video URL: ")
 video_ID = video_URL.split("=")[-1]
-#print(f"Video ID: {video_ID}\n")
 details = get_video_details(video_ID)
 
 try:
 	items = details['items']	# this throws a key error if it cannot find items
-	print(items)
+
 	if items:
 		for item in items:
-			print(f"[+] {item['snippet']['title']}\n")
-			print(f"Type: {item['kind']}\t" + "|\t" + f"ID: {item['id']} \t" + "|\t" + f"Channel Title: {item['snippet']['channelTitle']}")
-			print(f"Viewers: {item['statistics']['viewCount']}\t" + "|\t" + f"Likes: {item['statistics']['likeCount']}\t" + "|\t" + f"Comments: {item['statistics']['commentCount']}")
-			print(f"Description:\n\t|{item['snippet']['description'].replace("\n", "\n\t|")}")
+			kind = item['kind']
+			video_id = item['id']
+			channel_title = item['snippet']['channelTitle']
+			title = item['snippet']['title']
+			description = item['snippet']['description']
+			viewers = item['statistics']['viewCount']
+			likes = item['statistics']['likeCount']
+			comments = item['statistics']['commentCount']
+			print(f"\n[+] {title}\n")
+			print(f"Type: {kind}\t" + "|\t" + f"ID: {video_id} \t" + "|\t" + f"Channel Title: {channel_title}")
+			print("-"*90)
+			print(f"Viewers: {viewers}\t" + "|\t" + f"Likes: {likes}	\t" + "|\t" + f"Comments: {comments}")
+			print(f"\n[-] Description:\n\t|{description.replace("\n", "\n\t|")}\n")
 
 	else:
 		print("No video details found.")

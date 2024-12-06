@@ -24,7 +24,7 @@ def get_video(video_ID):
 
 def get_playlist(playlist_ID):
     request = youtube.playlists().list(
-    	part='snippet, contentDetails',
+    	part='snippet, contentDetails, status',
     	id=playlist_ID)
     response = request.execute()
 
@@ -32,8 +32,15 @@ def get_playlist(playlist_ID):
     for item in items:
     	playlist_title = item['snippet']['title']
     	playlist_items = item['contentDetails']['itemCount']
+    	playlist_status = item['status']['privacyStatus']
+    	playlist_ownership = item['snippet']['channelTitle']
+    	playlist_image = item['snippet']['thumbnails']['standard']['url']
     
+    print("\n[*] Displaying playlist information...")
     print(f"Title playlist: {playlist_title}\t" + "|\t" + f"Number of videos: {playlist_items}")
+    print(f"Playlist owner: {playlist_ownership}")
+    print(f"Playlist image URL: {playlist_image}")
+    print(f"Playlist status: {playlist_status}\n")
     return response
 
 

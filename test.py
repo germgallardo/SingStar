@@ -23,24 +23,67 @@ def get_video(video_ID):
 
 
 def get_playlist(playlist_ID):
-    request = youtube.playlists().list(
-    	part='snippet, contentDetails, status',
-    	id=playlist_ID)
+    '''
+    Receives a playlist_ID that needs to start with PL_ and then we list all it's content by using list() keyword.
+    With part we specify which aspects we want to retrieve and then we save it inside our response variable.
+    Response is a dictionary containing key-values metadata so we can pick up the ones we are interested in. 
+    '''
+    try:
+        request = youtube.playlists().list(
+            part='snippet, contentDetails, status',
+            id=playlist_ID)
+        response = request.execute()
+
+        # It's a playlist so response['items'] will only contain a single result with the playlist information
+        items = response['items'][0]
+        playlist_title = items['snippet']['title']
+        playlist_items = items['contentDetails']['itemCount']
+        playlist_status = items['status']['privacyStatus']
+        playlist_ownership = items['snippet']['channelTitle']
+        playlist_image = items['snippet']['thumbnails']['default']['url']    # change to grab the biggest possible
+
+        print("\n[*] Displaying playlist information...")
+        print(f"Title playlist: {playlist_title}\t" + "|\t" + f"Number of videos: {playlist_items}")
+        print(f"Playlist owner: {playlist_ownership}")
+        print(f"Playlist image URL: {playlist_image}")
+        print(f"Playlist status: {playlist_status}\n")
+        return response
+    
+    except UnboundLocalError as e:
+        print(f"Check if the playlist URL is correct: {e}")
+
+
+def get_playlist_details(playlist_ID):
+    '''
+    With contentDetails we can get video ID so we can extract later more information (number of likes, views, duration of the video...)
+    With status we can check if that video is public, private or 
+    '''
+    import pprint
+    request = youtube.playlistItems().list(
+        part='snippet, contentDetails, status',
+        playlistId=playlist_ID,
+        maxResults=50)
     response = request.execute()
+    print(pprint.pprint(response))
 
     items = response['items']
+
     for item in items:
-    	playlist_title = item['snippet']['title']
-    	playlist_items = item['contentDetails']['itemCount']
-    	playlist_status = item['status']['privacyStatus']
-    	playlist_ownership = item['snippet']['channelTitle']
-    	playlist_image = item['snippet']['thumbnails']['standard']['url']
-    
-    print("\n[*] Displaying playlist information...")
-    print(f"Title playlist: {playlist_title}\t" + "|\t" + f"Number of videos: {playlist_items}")
-    print(f"Playlist owner: {playlist_ownership}")
-    print(f"Playlist image URL: {playlist_image}")
-    print(f"Playlist status: {playlist_status}\n")
+        video_item = item.get('snippet', {}).get('position', 'No information available')
+        video_title = item.get('snippet', {}).get('title', 'No title available')
+        if video_title == 'Deleted video' or video_title == 'Private video':
+            print(colored(f"{video_item} - {video_title}\n", "red"))
+        else:
+            print(colored(f"{video_item} - {video_title}\n", 'green'))
+        video_URL = 'https://www.youtube.com/watch?v=' + item.get('contentDetails', {}).get('videoId', 'No video ID available')
+        print(f"Video URL: {video_URL}\n")
+        video_status = item.get('status', {}).get('privacyStatus', 'No information available')
+        print(f"Video status: {video_status}")
+        video_thumbnail = item.get('snippet', {}).get('thumbnails', {}).get('default', {}).get('url', 'No default URL available')
+        print(f"Video thumbnail: {video_thumbnail}")
+        video_owner = item.get('snippet', {}).get('videoOwnerChannelTitle', 'No information available')
+        print(f"Video Channel: {video_owner}")
+        print("-"*100 + "\n")
     return response
 
 
@@ -134,24 +177,43 @@ def save_to_cache(video_URL, cache_file="cache.txt"):
 
 
 if __name__:
-	#video_URL = input(colored("\nEnter your video URL: ", "red"))
-	#video_ID = video_URL.split("=")[-1]
-	#details = get_video(video_ID)
-	if not read_cache():
-		print("No cache found.")
-		playlist_URL = input(colored("\nEnter your playlist URL: ", "red"))
-		print("[+] Saving to cache...")
-		save_to_cache(playlist_URL)
-	else:
-		print(f"\n[*] Cache file: {read_cache()}")
-		playlist_URL = input(colored("\nEnter your playlist URL (press Enter to use cache): ", "red"))
-		if not playlist_URL:
-			print("Using cache...")
-			playlist_URL = read_cache()
-		else:
-			print("[+] Saving to cache...")
-			save_to_cache(playlist_URL)
-	print(playlist_URL)
-	playlist_ID = playlist_URL.split("=")[-1]
-	get_playlist(playlist_ID)
-	#get_video_information(details)
+    #video_URL = input(colored("\nEnter your video URL: ", "red"))
+    #video_ID = video_URL.split("=")[-1]
+    #details = get_video(video_ID)
+    if not read_cache():
+        print("No cache found.")
+        playlist_URL = input(colored("\nEnter your playlist URL: ", "red"))
+        print("[+] Saving to cache...")
+        save_to_cache(playlist_URL)
+    else:
+        print(f"\n[*] Cache file: {read_cache()}")
+        playlist_URL = input(colored("\nEnter your playlist URL (press Enter to use cache): ", "red"))
+        if not playlist_URL:
+            print("Using cache...")
+            playlist_URL = read_cache()
+        else:
+            print("[+] Saving to cache...")
+            save_to_cache(playlist_URL)
+    
+    print(playlist_URL)
+    playlist_ID = playlist_URL.split("=")[-1]
+    get_playlist(playlist_ID)
+    get_playlist_details(playlist_ID)
+    #get_video_information(details)
+
+
+
+
+
+
+# Checklist improvements
+# [] Create a database and add every item of the playlist
+# [] Check periodically (once a day?) if videos have changed their status
+# [] Give warnings for videos that you dont have access or that they have change their status
+# [] Automate this check so it's done without you doing anything
+# [] Status might lie, grab video ID and check if the URL for that video is working
+# [] If video URL is working, check that video is actually displayed or unavailable! This might be check with requests maybe?
+# [] If video is down, implement a YT search engine to search for similarities and display those that might be useful
+# [] Add a counter so you can get metrics and the number of times you watch a video
+# [] Use youtube-dl or something similar
+# [] Think of a front-end interface or use Streamlit to display everything

@@ -1,25 +1,26 @@
 from googleapiclient.discovery import build
 from termcolor import colored
 import os
+import argparse
 
 
 try:
-	with open('./keys.txt', mode='r') as my_file:
-		YT_API_KEY=my_file.read().split('=')[1]
+    with open('./keys.txt', mode='r') as my_file:
+        YT_API_KEY=my_file.read().split('=')[1]
 except FileNotFoundError as e:
-	print('File does not exist. Key cannot be retrieved.')
+    print('File does not exist. Key cannot be retrieved.')
 
 
 youtube = build('youtube', 'v3', developerKey=YT_API_KEY)
 
 
 def get_video(video_ID):
-	request = youtube.videos().list(
-		part='snippet, contentDetails, statistics',
-		fields='items(kind, id, snippet(title, description, thumbnails, channelTitle), contentDetails(duration), statistics)',
-		id=video_ID)
-	response = request.execute()
-	return response
+    request = youtube.videos().list(
+        part='snippet, contentDetails, statistics',
+        fields='items(kind, id, snippet(title, description, thumbnails, channelTitle), contentDetails(duration), statistics)',
+        id=video_ID)
+    response = request.execute()
+    return response
 
 
 def get_playlist(playlist_ID):
@@ -64,7 +65,7 @@ def get_playlist_details(playlist_ID):
         playlistId=playlist_ID,
         maxResults=50)
     response = request.execute()
-    print(pprint.pprint(response))
+    #print(pprint.pprint(response))
 
     items = response['items']
 
@@ -88,119 +89,134 @@ def get_playlist_details(playlist_ID):
 
 
 def time_format(duration):
-	'''
-	YT uses ISO 8601 to format time and return it as a string as PT1H4M3S (PT is Time Duration, H is Hour, M is Minute and S is Second)
-	This function dissects the string and separates hours, minutes and seconds for a more convenient view
-	'''
-	try:
-		duration = duration[2:]
-		#print(duration)
-		h, m, s = duration.find("H"), duration.find("M"), duration.find("S")
-		seconds = duration[m+1:s]
-		if h > 0:
-			minutes = duration[h+1:m]
-			hours = duration[:h]
-			return hours + " hours " + minutes + " minutes " + seconds + " seconds"
-		else:
-			minutes = duration[:m]
-			return minutes + " minutes " + seconds + " seconds"
+    '''
+    YT uses ISO 8601 to format time and return it as a string as PT1H4M3S (PT is Time Duration, H is Hour, M is Minute and S is Second)
+    This function dissects the string and separates hours, minutes and seconds for a more convenient view
+    '''
+    try:
+        duration = duration[2:]
+        #print(duration)
+        h, m, s = duration.find("H"), duration.find("M"), duration.find("S")
+        seconds = duration[m+1:s]
+        if h > 0:
+            minutes = duration[h+1:m]
+            hours = duration[:h]
+            return hours + " hours " + minutes + " minutes " + seconds + " seconds"
+        else:
+            minutes = duration[:m]
+            return minutes + " minutes " + seconds + " seconds"
 
-	except Exception as e:
-		print(f"Time/Hour format error: {e}")
+    except Exception as e:
+        print(f"Time/Hour format error: {e}")
 
 
 def time_format_minutes(duration):
-	'''
-	YT uses ISO 8601 to format time and return it as a string as PT1H4M3S (PT is Time Duration, H is Hour, M is Minute and S is Second)
-	This function returns the total amount of minutes
-	'''
-	duration = duration[2:]
-	h, m, s = duration.find("H"), duration.find("M"), duration.find("S")
-	seconds = int(duration[m+1:s])
-	if h > 0:
-		minutes = int(duration[h+1:m])
-		hours = int(duration[:h])
-		return str(hours*60 + minutes + round(seconds/60, 2)) + " minutes"
-	else:
-		minutes = int(duration[:m])
-		return str(minutes + round(seconds/60, 2)) + " minutes"
+    '''
+    YT uses ISO 8601 to format time and return it as a string as PT1H4M3S (PT is Time Duration, H is Hour, M is Minute and S is Second)
+    This function returns the total amount of minutes
+    '''
+    duration = duration[2:]
+    h, m, s = duration.find("H"), duration.find("M"), duration.find("S")
+    seconds = int(duration[m+1:s])
+    if h > 0:
+        minutes = int(duration[h+1:m])
+        hours = int(duration[:h])
+        return str(hours*60 + minutes + round(seconds/60, 2)) + " minutes"
+    else:
+        minutes = int(duration[:m])
+        return str(minutes + round(seconds/60, 2)) + " minutes"
 
 
 def get_video_information(details):
-	try:
-		items = details['items']	# this throws a key error if it cannot find items
+    try:
+        items = details['items']    # this throws a key error if it cannot find items
 
-		if items:
-			for item in items:
-				kind = item['kind']
-				video_id = item['id']
-				channel_title = item['snippet']['channelTitle']
-				title = item['snippet']['title']
-				description = item['snippet']['description']
-				viewers = item['statistics']['viewCount']
-				likes = item['statistics']['likeCount']
-				comments = item['statistics']['commentCount']
-				duration = item['contentDetails']['duration']
-				print(colored(f"\n[+] {title}\n", "green"))
-				print(f"Type: {kind}\t" + "|\t" + f"ID: {video_id} \t" + "|\t" + f"Channel Title: {channel_title}")
-				print("-"*90)
-				print(f"Viewers: {viewers} \t" + "|\t" + f"Likes: {likes}	\t" + "|\t" + f"Comments: {comments}")
-				print(colored("\n[-] Description:\n", "light_magenta") + "\t|" + f"{description.replace("\n", "\n\t|")}\n")
-				print(f"Duration without formatting: {duration}")
-				print(f"Duration: {time_format(duration)}")
-				print(f"Duration in minutes: {time_format_minutes(duration)}")
+        if items:
+            for item in items:
+                kind = item['kind']
+                video_id = item['id']
+                channel_title = item['snippet']['channelTitle']
+                title = item['snippet']['title']
+                description = item['snippet']['description']
+                viewers = item['statistics']['viewCount']
+                likes = item['statistics']['likeCount']
+                comments = item['statistics']['commentCount']
+                duration = item['contentDetails']['duration']
+                print(colored(f"\n[+] {title}\n", "green"))
+                print(f"Type: {kind}\t" + "|\t" + f"ID: {video_id} \t" + "|\t" + f"Channel Title: {channel_title}")
+                print("-"*90)
+                print(f"Viewers: {viewers} \t" + "|\t" + f"Likes: {likes}   \t" + "|\t" + f"Comments: {comments}")
+                print(colored("\n[-] Description:\n", "light_magenta") + "\t|" + f"{description.replace("\n", "\n\t|")}\n")
+                print(f"Duration without formatting: {duration}")
+                print(f"Duration: {time_format(duration)}")
+                print(f"Duration in minutes: {time_format_minutes(duration)}")
 
-		else:
-			print("No video details found.")
+        else:
+            print("No video details found.")
 
-	except KeyError as e:
-		print(f"Missing items key: {e}")
-	#except Exception as e:
-		#print(f"Something failed: {e}")
+    except KeyError as e:
+        print(f"Missing items key: {e}")
+    #except Exception as e:
+        #print(f"Something failed: {e}")
 
 
 
 def read_cache(cache_file="cache.txt"):
-	'''Reads cache and gives back what has been stored before'''
-	if os.path.exists(cache_file):
-		with open(cache_file, "r") as file:
-			return file.read().strip()	# strip is for removing empty spaces
-	
-	print(f"{cache_file} does not exist.")
-	return None
+    '''Reads cache and gives back what has been stored before'''
+    if os.path.exists(cache_file):
+        with open(cache_file, "r") as file:
+            return file.read().strip()  # strip is for removing empty spaces
+    
+    print(f"{cache_file} does not exist. Creating an empty cache file.")
+    with open(cache_file, "w") as file:
+        file.write("")
+
+    print("No information found on cache. A playlist_ID must be provided.")
 
 
-def save_to_cache(video_URL, cache_file="cache.txt"):
-	'''Saves video to cache'''
-	with open(cache_file, "w") as file:
-		file.write(video_URL)
+def save_to_cache(playlist_ID, cache_file="cache.txt"):
+    '''Saves video to cache, if cache file is not found, creates the file'''
+    if os.path.exists(cache_file):
+        with open(cache_file, "w") as file:
+            file.write(playlist_ID)
+            print(f"Cache successfully updated with Playlist ID: {playlist_ID}")
+
+    else:
+        print(f"{cache_file} does not exist. Creating a new cache file.")
+        with open(cache_file, "w") as file:
+            file.write(playlist_ID)
+            print(f"Cache file was created with Playlist ID: {playlist_ID}")
 
 
 if __name__:
-    #video_URL = input(colored("\nEnter your video URL: ", "red"))
-    #video_ID = video_URL.split("=")[-1]
-    #details = get_video(video_ID)
-    if not read_cache():
-        print("No cache found.")
-        playlist_URL = input(colored("\nEnter your playlist URL: ", "red"))
-        print("[+] Saving to cache...")
-        save_to_cache(playlist_URL)
+    '''
+    To run this program: python test.py [Playlist_ID]
+    Playlist_ID is an optional parameter and it needs to start with "PL", e.g. PLqNVAh4vnnHEUkdctr7n9LTyUe6-JEHpm
+    If Playlist_ID is not provided, the program will use the one from default
+    '''
+
+    # Defines parser to provide help information
+    parser = argparse.ArgumentParser(
+                    prog='test.py',
+                    description='Displays information from each video of a YouTube Playlist',
+                    epilog='For more information, visit https://github.com/germgallardo/SingStar/blob/main/README.md')
+
+    # Accepts a playlist_id parameter, with nargs='?' we can define it as an optional parameter
+    parser.add_argument("Playlist_ID",
+                        nargs="?",
+                        default="PLBKqHs5LAsifp7juT68FVA7M7nNQvLIlS",
+                        help="Youtube Playlist ID needs to start with PL, e.g. PLqNVAh4vnnHEUkdctr7n9LTyUe6-JEHpm")
+    playlist_ID = parser.parse_args()
+
+    if playlist_ID == parser.get_default('Playlist_ID'):
+        print(colored(f"\nUsing default Playlist ID: {playlist_ID}", "yellow"))
     else:
-        print(f"\n[*] Cache file: {read_cache()}")
-        playlist_URL = input(colored("\nEnter your playlist URL (press Enter to use cache): ", "red"))
-        if not playlist_URL:
-            print("Using cache...")
-            playlist_URL = read_cache()
-        else:
-            print("[+] Saving to cache...")
-            save_to_cache(playlist_URL)
-    
-    print(playlist_URL)
-    playlist_ID = playlist_URL.split("=")[-1]
+        print(colored(f"\nUsing provided Playlist ID: {playlist_ID}", "blue"))
+
+
     get_playlist(playlist_ID)
     get_playlist_details(playlist_ID)
     #get_video_information(details)
-
 
 
 

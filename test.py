@@ -206,16 +206,18 @@ if __name__:
                         nargs="?",
                         default="PLBKqHs5LAsifp7juT68FVA7M7nNQvLIlS",
                         help="Youtube Playlist ID needs to start with PL, e.g. PLqNVAh4vnnHEUkdctr7n9LTyUe6-JEHpm")
-    playlist_ID = parser.parse_args()
+    
+    # Grabs the Playlist_ID parameter provided or the one from default
+    Playlist_ID = parser.parse_args().Playlist_ID
 
-    if playlist_ID == parser.get_default('Playlist_ID'):
-        print(colored(f"\nUsing default Playlist ID: {playlist_ID}", "yellow"))
+    if Playlist_ID == parser.get_default('Playlist_ID'):
+        print(colored(f"\nUsing default Playlist ID: {Playlist_ID}", "yellow"))
     else:
-        print(colored(f"\nUsing provided Playlist ID: {playlist_ID}", "blue"))
+        print(colored(f"\nUsing provided Playlist ID: {Playlist_ID}", "blue"))
 
 
-    get_playlist(playlist_ID)
-    get_playlist_details(playlist_ID)
+    get_playlist(Playlist_ID)
+    get_playlist_details(Playlist_ID)
     #get_video_information(details)
 
 

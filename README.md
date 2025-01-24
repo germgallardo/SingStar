@@ -20,7 +20,10 @@ PLqNVAh4vnnHEUkdctr7n9LTyUe6-JEHpm
 
 ---
 
-To run the application:
+To run the application, first install the required dependencies and then use the following command to execute the program:
+```
+pip install -r requirements.txt
+```
 ```
 python test.py [Playlist_ID]
 ```

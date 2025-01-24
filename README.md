@@ -11,7 +11,7 @@ Given a Playlist URL like:
 https://www.youtube.com/watch?v=-MfiaO7xl2c&list=PLqNVAh4vnnHEUkdctr7n9LTyUe6-JEHpm
 ```
 
-The `Playlist ID` parameter is everything after the `list=` sign, in this case it would be:
+The `Playlist ID` parameter is everything after `list=`, in this case it would be:
 ```
 PLqNVAh4vnnHEUkdctr7n9LTyUe6-JEHpm
 ```

@@ -2,6 +2,7 @@ from googleapiclient.discovery import build
 from termcolor import colored
 import os
 import argparse
+import sys
 
 
 try:
@@ -34,8 +35,13 @@ def get_playlist(playlist_ID):
             part='snippet, contentDetails, status',
             id=playlist_ID)
         response = request.execute()
+        #print(response)
 
         # It's a playlist so response['items'] will only contain a single result with the playlist information
+        # We check first if it's empty before trying to get the information
+        if not response.get('items'):
+            sys.exit(colored(f"Playlist not found. Playlist_ID `{playlist_ID}` might be incorrect. Try again or run `python test.py --help` for more information.", "red"))
+
         items = response['items'][0]
         playlist_title = items['snippet']['title']
         playlist_items = items['contentDetails']['itemCount']
@@ -196,10 +202,11 @@ if __name__:
     '''
 
     # Defines parser to provide help information
+    epilog_text = colored("For more information visit: https://github.com/germgallardo/SingStar/blob/unica_T1/README.md", "cyan")
     parser = argparse.ArgumentParser(
                     prog='test.py',
                     description='Displays information from each video of a YouTube Playlist',
-                    epilog='For more information, visit https://github.com/germgallardo/SingStar/blob/main/README.md')
+                    epilog=epilog_text)
 
     # Accepts a playlist_id parameter, with nargs='?' we can define it as an optional parameter
     parser.add_argument("Playlist_ID",
@@ -209,6 +216,9 @@ if __name__:
     
     # Grabs the Playlist_ID parameter provided or the one from default
     Playlist_ID = parser.parse_args().Playlist_ID
+
+    if Playlist_ID[:2] != "PL":
+        sys.exit(colored("Playlist_ID must start with `PL`. Run `python test.py --help` to check for an example.", "red"))
 
     if Playlist_ID == parser.get_default('Playlist_ID'):
         print(colored(f"\nUsing default Playlist ID: {Playlist_ID}", "yellow"))

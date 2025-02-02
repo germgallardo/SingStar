@@ -64,11 +64,29 @@ def get_playlist_details(playlist_ID):
         playlistId=playlist_ID,
         maxResults=50)
     response = request.execute()
-    print(pprint.pprint(response))
+    #print(pprint.pprint(response))
 
+    # Gets first 50 results from the playlist
+    get_playlist_videos(response)
+
+    # Grabs the token for the next page (in case there are several pages), if there's no token, response will return None
     nextPageToken = response.get('nextPageToken')
-    print(nextPageToken)
-    return get_playlist_videos(response)
+
+    # Checks if Token exists and if it's inside the response
+    while "nextPageToken" in response:
+        nextPage_request = youtube.playlistItems().list(
+            part='snippet, contentDetails, status',
+            playlistId=playlist_ID,
+            maxResults=50,
+            pageToken=nextPageToken)
+        response = nextPage_request.execute()
+
+        # Gets next 50 results from the playlist
+        get_playlist_videos(response)
+
+        # Tries to grab the next Token for another page
+        nextPageToken = response.get("nextPageToken")
+
 
 
 def get_playlist_videos(response):
@@ -113,6 +131,7 @@ def time_format(duration):
         else:
             minutes = duration[:m]
             return minutes + " minutes " + seconds + " seconds"
+
 
     except Exception as e:
         print(f"Time/Hour format error: {e}")

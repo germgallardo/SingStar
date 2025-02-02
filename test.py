@@ -72,7 +72,7 @@ def get_playlist_details(playlist_ID):
     # Grabs the token for the next page (in case there are several pages), if there's no token, response will return None
     nextPageToken = response.get('nextPageToken')
 
-    # Checks if Token exists and if it's inside the response
+    # Checks if Token exists and if it's inside the response and then creates a new request by using this token for the next page
     while "nextPageToken" in response:
         nextPage_request = youtube.playlistItems().list(
             part='snippet, contentDetails, status',
@@ -84,8 +84,10 @@ def get_playlist_details(playlist_ID):
         # Gets next 50 results from the playlist
         get_playlist_videos(response)
 
-        # Tries to grab the next Token for another page
+        # Tries to grab the next Token for the next page
         nextPageToken = response.get("nextPageToken")
+
+    print(colored(f"Playlist '{response['items'][0]['snippet']['title']}' has been successfully retrieved!\n", "magenta"))
 
 
 
@@ -99,9 +101,9 @@ def get_playlist_videos(response):
         video_item = item.get('snippet', {}).get('position', 'No information available')
         video_title = item.get('snippet', {}).get('title', 'No title available')
         if video_title == 'Deleted video' or video_title == 'Private video':
-            print(colored(f"{video_item} - {video_title}\n", "red"))
+            print(colored(f"{video_item+1} - {video_title}\n", "red"))  # video_item+1 because index starts from 0 and should start from 1
         else:
-            print(colored(f"{video_item} - {video_title}\n", 'green'))
+            print(colored(f"{video_item+1} - {video_title}\n", 'green'))
         video_URL = 'https://www.youtube.com/watch?v=' + item.get('contentDetails', {}).get('videoId', 'No video ID available')
         print(f"Video URL: {video_URL}\n")
         video_status = item.get('status', {}).get('privacyStatus', 'No information available')

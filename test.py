@@ -1,8 +1,14 @@
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from termcolor import colored
 import os
 import argparse
 import sys
+import json
+import re
+import httplib2
+import socket
+import time
 
 
 # Retrieves YT_API_KEY defined as an environment variable
@@ -23,18 +29,81 @@ def get_video(video_ID):
     return response
 
 
+def playlist_request(request, timeout_duration=0.1, retries=5, backoff=2):
+    '''
+    Requests a playlist and raises different exceptions if it finds any error
+    If the request is correct, the function gives back the response
+
+    Parameters:
+    - timeout_duration: maximum amount of time (seconds) the request will wait before raising an error
+    - retries: number of attempts to be made before exiting the program because of a connectivity/server issue
+    - backoff: exponential backoff factor for the retries, i.e. how many seconds the program will wait to make another retry based on the attempt number
+    
+    In case there is a connectivity/server issue, it will make some retries with an exponential backoff to give time for recovery
+    For more information: https://peerdh.com/blogs/programming-insights/timeout-strategies-and-backoff-techniques-in-structured-concurrency
+    '''
+    for attempt in range(retries):
+        try:
+            print(f"Request: {request}")
+
+            # Execute the request and check if the response has a parameter called `items` with the Playlist information
+            response = request.execute(http=httplib2.Http(timeout=timeout_duration))
+            
+            if not response.get('items'):
+                sys.exit(colored(f"Playlist not found. Check Playlist_ID as it might be incorrect.", "red"))
+            
+            return response
+        
+        except HttpError as e:
+            # Request returns a json object that needs to be processed to get the type of error and message
+            # For an invalid API key it will give a 400 error, if you have reached your quota, it will give a 403 error
+            # For a rate limit exceeded or a connectivity error, the code should be 429 and 500 respectively
+            print(f"Raising HttpError: {e}")
+            error = json.loads(e.content).get('error', {})
+            code = error.get('code', 'Unknown Code')
+            message = error.get('message', 'No message provided.')
+
+            if code == 429:
+                sys.exit(colored(f"HttpError: {code}. Rate limit exceeded, too many requests."))
+
+            if code == 500:
+                sys.exit(colored(f"HttpError: {code}. A connectivity error ocurred. Server is currently unreachable."))
+
+            else:
+                # With a regular expression we remove any html tags (e.g. <a> for quota limits) from the message
+                sys.exit(colored(f"HttpError: {code}. {re.sub(r'<.*?>', '', message)}", "red"))
+
+        except httplib2.error.ServerNotFoundError as e:
+            # A test to simulate this error can be made by disconnecting from the internet
+            print(colored(f"There was a server error, check your internet connection. {e}", "red"))
+
+        except socket.timeout as e:
+            # To test this, reduce the timeout_duration to 0.1 seconds
+            print(colored(f"There was a timeout error, the request took too long to complete. {e}", "red"))
+
+        except Exception as e:
+            sys.exit(colored(f"An unexpected error ocurred: {e}", "red"))
+
+        # wait_time is the amount of time (seconds) the program will wait before the next retry
+        wait_time = backoff**attempt
+        print(f"Attempt {attempt+1} failed. Trying again in {wait_time} seconds")
+        time.sleep(wait_time)
+
+    sys.exit(colored("Maximum number of retries reached. The request could not be made. Try later.", "red"))
+
+
 def get_playlist(playlist_ID):
     '''
     Receives a playlist_ID that needs to start with PL_ and then we list all it's content by using list() keyword.
     With part we specify which aspects we want to retrieve and then we save it inside our response variable.
     Response is a dictionary containing key-values metadata so we can pick up the ones we are interested in. 
     '''
-    try:
+    try:        
         request = youtube.playlists().list(
             part='snippet, contentDetails, status',
             id=playlist_ID)
-        response = request.execute()
-        #print(response)
+
+        response = playlist_request(request)
 
         # It's a playlist so response['items'] will only contain a single result with the playlist information
         # We check first if it's empty before trying to get the information
@@ -55,8 +124,8 @@ def get_playlist(playlist_ID):
         print(f"Playlist status: {playlist_status}\n")
         return response
     
-    except UnboundLocalError as e:
-        print(f"Check if the playlist URL is correct: {e}")
+    except Exception as e:
+        sys.exit(colored(f"An unexpected error ocurred: {e}", "red"))
 
 
 def get_playlist_details(playlist_ID):
@@ -64,33 +133,36 @@ def get_playlist_details(playlist_ID):
     With contentDetails we can get video ID so we can extract later more information (number of likes, views, duration of the video...)
     With status we can check if that video is public, private or 
     '''
-    import pprint
-    request = youtube.playlistItems().list(
-        part='snippet, contentDetails, status',
-        playlistId=playlist_ID,
-        maxResults=50)
-    response = request.execute()
-    #print(pprint.pprint(response))
+    try:
+        request = youtube.playlistItems().list(
+            part='snippet, contentDetails, status',
+            playlistId=playlist_ID,
+            maxResults=50)
+        
+        response = playlist_request(request)
 
-    items = response['items']
+        items = response['items']
 
-    for item in items:
-        video_item = item.get('snippet', {}).get('position', 'No information available')
-        video_title = item.get('snippet', {}).get('title', 'No title available')
-        if video_title == 'Deleted video' or video_title == 'Private video':
-            print(colored(f"{video_item} - {video_title}\n", "red"))
-        else:
-            print(colored(f"{video_item} - {video_title}\n", 'green'))
-        video_URL = 'https://www.youtube.com/watch?v=' + item.get('contentDetails', {}).get('videoId', 'No video ID available')
-        print(f"Video URL: {video_URL}\n")
-        video_status = item.get('status', {}).get('privacyStatus', 'No information available')
-        print(f"Video status: {video_status}")
-        video_thumbnail = item.get('snippet', {}).get('thumbnails', {}).get('default', {}).get('url', 'No default URL available')
-        print(f"Video thumbnail: {video_thumbnail}")
-        video_owner = item.get('snippet', {}).get('videoOwnerChannelTitle', 'No information available')
-        print(f"Video Channel: {video_owner}")
-        print("-"*100 + "\n")
-    return response
+        for item in items:
+            video_item = item.get('snippet', {}).get('position', 'No information available')
+            video_title = item.get('snippet', {}).get('title', 'No title available')
+            if video_title == 'Deleted video' or video_title == 'Private video':
+                print(colored(f"{video_item} - {video_title}\n", "red"))
+            else:
+                print(colored(f"{video_item} - {video_title}\n", 'green'))
+            video_URL = 'https://www.youtube.com/watch?v=' + item.get('contentDetails', {}).get('videoId', 'No video ID available')
+            print(f"Video URL: {video_URL}\n")
+            video_status = item.get('status', {}).get('privacyStatus', 'No information available')
+            print(f"Video status: {video_status}")
+            video_thumbnail = item.get('snippet', {}).get('thumbnails', {}).get('default', {}).get('url', 'No default URL available')
+            print(f"Video thumbnail: {video_thumbnail}")
+            video_owner = item.get('snippet', {}).get('videoOwnerChannelTitle', 'No information available')
+            print(f"Video Channel: {video_owner}")
+            print("-"*100 + "\n")
+        return response
+
+    except Exception as e:
+        sys.exit(colored(f"An unexpected error ocurred: {e}", "red"))
 
 
 def time_format(duration):

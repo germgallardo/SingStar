@@ -29,7 +29,7 @@ def get_video(video_ID):
     return response
 
 
-def playlist_request(request, timeout_duration=0.1, retries=5, backoff=2):
+def playlist_request(request, timeout_duration=7, retries=5, backoff=2):
     '''
     Requests a playlist and raises different exceptions if it finds any error
     If the request is correct, the function gives back the response
@@ -46,7 +46,7 @@ def playlist_request(request, timeout_duration=0.1, retries=5, backoff=2):
         try:
             print(f"Request: {request}")
 
-            # Execute the request and check if the response has a parameter called `items` with the Playlist information
+            # Execute the request and check if the response has a parameter called `items` within the Playlist information
             response = request.execute(http=httplib2.Http(timeout=timeout_duration))
             
             if not response.get('items'):
@@ -104,11 +104,6 @@ def get_playlist(playlist_ID):
             id=playlist_ID)
 
         response = playlist_request(request)
-
-        # It's a playlist so response['items'] will only contain a single result with the playlist information
-        # We check first if it's empty before trying to get the information
-        if not response.get('items'):
-            sys.exit(colored(f"Playlist not found. Playlist_ID `{playlist_ID}` might be incorrect. Try again or run `python test.py --help` for more information.", "red"))
 
         items = response['items'][0]
         playlist_title = items['snippet']['title']
@@ -273,7 +268,7 @@ if __name__ == "__main__":
     '''
 
     # Defines parser to provide help information
-    epilog_text = colored("For more information visit: https://github.com/germgallardo/SingStar/blob/unica_T1/README.md", "cyan")
+    epilog_text = colored("For more information visit: https://github.com/germgallardo/SingStar/README.md", "cyan")
     parser = argparse.ArgumentParser(
                     prog='test.py',
                     description='Displays information from each video of a YouTube Playlist',

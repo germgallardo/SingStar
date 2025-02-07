@@ -171,8 +171,8 @@ def time_format(duration):
     This function dissects the string and separates hours, minutes and seconds for a more convenient view
     '''
     try:
-        duration = duration[2:]
-        #print(duration)
+        duration = duration[2:]     # removes `PT` from the string
+        # With `find()` we can get the position for each letter, if that letter is not found it will return a -1
         h, m, s = duration.find("H"), duration.find("M"), duration.find("S")
         seconds = duration[m+1:s]
         if h > 0:
@@ -265,7 +265,7 @@ def save_to_cache(playlist_ID, cache_file="cache.txt"):
             print(f"Cache file was created with Playlist ID: {playlist_ID}")
 
 
-if __name__:
+if __name__ == "__main__":
     '''
     To run this program: python test.py [Playlist_ID]
     Playlist_ID is an optional parameter and it needs to start with "PL", e.g. PLqNVAh4vnnHEUkdctr7n9LTyUe6-JEHpm

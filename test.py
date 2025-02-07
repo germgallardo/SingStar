@@ -5,12 +5,11 @@ import argparse
 import sys
 
 
-try:
-    with open('./keys.txt', mode='r') as my_file:
-        YT_API_KEY=my_file.read().split('=')[1]
-except FileNotFoundError as e:
-    print('File does not exist. Key cannot be retrieved.')
+# Retrieves YT_API_KEY defined as an environment variable
+YT_API_KEY = os.getenv("YT_API_KEY")
 
+if not YT_API_KEY:
+    sys.exit(colored("No API Key found. Set the API key as an environment variable.", "red"))
 
 youtube = build('youtube', 'v3', developerKey=YT_API_KEY)
 

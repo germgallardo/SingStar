@@ -128,12 +128,13 @@ def get_playlist_details(playlist_ID):
     With contentDetails we can get video ID so we can extract later more information (number of likes, views, duration of the video...)
     With status we can check if that video is public, private or 
     '''
-    import pprint
+    #import pprint
     request = youtube.playlistItems().list(
         part='snippet, contentDetails, status',
         playlistId=playlist_ID,
         maxResults=50)
-    response = request.execute()
+    
+    response = playlist_request(request)
     #print(pprint.pprint(response))
 
     # Gets first 50 results from the playlist
@@ -149,6 +150,7 @@ def get_playlist_details(playlist_ID):
             playlistId=playlist_ID,
             maxResults=50,
             pageToken=nextPageToken)
+        
         response = nextPage_request.execute()
 
         # Gets next 50 results from the playlist
@@ -257,33 +259,6 @@ def get_video_information(details):
     #except Exception as e:
         #print(f"Something failed: {e}")
 
-
-
-def read_cache(cache_file="cache.txt"):
-    '''Reads cache and gives back what has been stored before'''
-    if os.path.exists(cache_file):
-        with open(cache_file, "r") as file:
-            return file.read().strip()  # strip is for removing empty spaces
-    
-    print(f"{cache_file} does not exist. Creating an empty cache file.")
-    with open(cache_file, "w") as file:
-        file.write("")
-
-    print("No information found on cache. A playlist_ID must be provided.")
-
-
-def save_to_cache(playlist_ID, cache_file="cache.txt"):
-    '''Saves video to cache, if cache file is not found, creates the file'''
-    if os.path.exists(cache_file):
-        with open(cache_file, "w") as file:
-            file.write(playlist_ID)
-            print(f"Cache successfully updated with Playlist ID: {playlist_ID}")
-
-    else:
-        print(f"{cache_file} does not exist. Creating a new cache file.")
-        with open(cache_file, "w") as file:
-            file.write(playlist_ID)
-            print(f"Cache file was created with Playlist ID: {playlist_ID}")
 
 
 if __name__ == "__main__":

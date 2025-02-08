@@ -128,36 +128,62 @@ def get_playlist_details(playlist_ID):
     With contentDetails we can get video ID so we can extract later more information (number of likes, views, duration of the video...)
     With status we can check if that video is public, private or 
     '''
-    try:
-        request = youtube.playlistItems().list(
+    import pprint
+    request = youtube.playlistItems().list(
+        part='snippet, contentDetails, status',
+        playlistId=playlist_ID,
+        maxResults=50)
+    response = request.execute()
+    #print(pprint.pprint(response))
+
+    # Gets first 50 results from the playlist
+    get_playlist_videos(response)
+
+    # Grabs the token for the next page (in case there are several pages), if there's no token, response will return None
+    nextPageToken = response.get('nextPageToken')
+
+    # Checks if Token exists and if it's inside the response and then creates a new request by using this token for the next page
+    while "nextPageToken" in response:
+        nextPage_request = youtube.playlistItems().list(
             part='snippet, contentDetails, status',
             playlistId=playlist_ID,
-            maxResults=50)
-        
-        response = playlist_request(request)
+            maxResults=50,
+            pageToken=nextPageToken)
+        response = nextPage_request.execute()
 
-        items = response['items']
+        # Gets next 50 results from the playlist
+        get_playlist_videos(response)
 
-        for item in items:
-            video_item = item.get('snippet', {}).get('position', 'No information available')
-            video_title = item.get('snippet', {}).get('title', 'No title available')
-            if video_title == 'Deleted video' or video_title == 'Private video':
-                print(colored(f"{video_item} - {video_title}\n", "red"))
-            else:
-                print(colored(f"{video_item} - {video_title}\n", 'green'))
-            video_URL = 'https://www.youtube.com/watch?v=' + item.get('contentDetails', {}).get('videoId', 'No video ID available')
-            print(f"Video URL: {video_URL}\n")
-            video_status = item.get('status', {}).get('privacyStatus', 'No information available')
-            print(f"Video status: {video_status}")
-            video_thumbnail = item.get('snippet', {}).get('thumbnails', {}).get('default', {}).get('url', 'No default URL available')
-            print(f"Video thumbnail: {video_thumbnail}")
-            video_owner = item.get('snippet', {}).get('videoOwnerChannelTitle', 'No information available')
-            print(f"Video Channel: {video_owner}")
-            print("-"*100 + "\n")
-        return response
+        # Tries to grab the next Token for the next page
+        nextPageToken = response.get("nextPageToken")
 
-    except Exception as e:
-        sys.exit(colored(f"An unexpected error ocurred: {e}", "red"))
+    print(colored(f"Playlist '{response['items'][0]['snippet']['title']}' has been successfully retrieved!\n", "magenta"))
+
+
+
+def get_playlist_videos(response):
+    '''
+    Receives a playlist request to list all items from within
+    '''
+    items = response['items']
+    
+    for item in items:
+        video_item = item.get('snippet', {}).get('position', 'No information available')
+        video_title = item.get('snippet', {}).get('title', 'No title available')
+        if video_title == 'Deleted video' or video_title == 'Private video':
+            print(colored(f"{video_item+1} - {video_title}\n", "red"))  # video_item+1 because index starts from 0 and should start from 1
+        else:
+            print(colored(f"{video_item+1} - {video_title}\n", 'green'))
+        video_URL = 'https://www.youtube.com/watch?v=' + item.get('contentDetails', {}).get('videoId', 'No video ID available')
+        print(f"Video URL: {video_URL}\n")
+        video_status = item.get('status', {}).get('privacyStatus', 'No information available')
+        print(f"Video status: {video_status}")
+        video_thumbnail = item.get('snippet', {}).get('thumbnails', {}).get('default', {}).get('url', 'No default URL available')
+        print(f"Video thumbnail: {video_thumbnail}")
+        video_owner = item.get('snippet', {}).get('videoOwnerChannelTitle', 'No information available')
+        print(f"Video Channel: {video_owner}")
+        print("-"*100 + "\n")
+    return response
 
 
 def time_format(duration):
